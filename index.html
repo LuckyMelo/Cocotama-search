@@ -1,172 +1,143 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>キャラクター情報検索サイト</title>
-<style>
-body { font-family: Arial, sans-serif; margin: 20px; }
-input { padding: 5px; font-size: 16px; width: 300px; }
-ul.suggestions { list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; max-width: 300px; max-height: 200px; overflow-y: auto; position: absolute; background: #fff; z-index: 1000; }
-ul.suggestions li { padding: 5px; cursor: pointer; }
-ul.suggestions li.highlight { background-color: #eee; }
-table { margin-top: 20px; border-collapse: collapse; width: 100%; max-width: 800px; }
-th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
-.highlightText { background-color: yellow; }
-</style>
+  <meta charset="UTF-8" />
+  <title>ここたま検索</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    input { width: 300px; padding: 8px; font-size: 16px; }
+    ul { list-style: none; padding: 0; margin: 0; width: 300px; border: 1px solid #ccc; max-height: 220px; overflow-y: auto; position: absolute; background: #fff; z-index: 10; }
+    li { cursor: pointer; padding: 6px; }
+    li.active { background: #eee; }
+    .card { border: 1px solid #ccc; border-radius: 8px; padding: 16px; margin-top: 20px; max-width: 500px; }
+  </style>
 </head>
 <body>
 
-<h1>キャラクター情報検索</h1>
+<h1>ここたま検索</h1>
 <div style="position: relative;">
-<input type="text" id="nameInput" placeholder="名前を入力" autocomplete="off">
-<ul id="suggestions" class="suggestions"></ul>
+  <input id="search" placeholder="名前を入力（ひらがな・ローマ字OK）" autocomplete="off" />
+  <ul id="suggest"></ul>
 </div>
-<button onclick="searchCharacter()">検索</button>
-
 <div id="result"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script>
-const csvUrl = "cocotama.csv";
-let characters = [];
-let selectedIndex = -1;
+let data = [];
+let currentIndex = -1;
 
-// CSV読み込み
-Papa.parse(csvUrl, {
-  download: true,
-  header: true,
-  complete: function(results) {
-    characters = results.data.filter(c => c.名前).map(c => ({
-        ...c,
-        nameHira: toHiragana(c.名前),
-        nameRomaji: toRomaji(toHiragana(c.名前))
-    }));
-  }
+fetch("cocotama.csv")
+  .then(res => res.text())
+  .then(text => {
+    const lines = text.trim().split("\n");
+    const headers = lines[0].split(",");
+
+    data = lines.slice(1).map(line => {
+      const values = line.split(",");
+      let obj = {};
+      headers.forEach((h, i) => obj[h] = values[i]);
+      obj._hira = toHiragana(obj["名前"]);
+      obj._roma = toRomaji(obj._hira);
+      return obj;
+    });
+
+    // 50音順（ひらがな）でソート
+    data.sort((a, b) => a._hira.localeCompare(b._hira, 'ja'));
+  });
+
+function toHiragana(str) {
+  return str.replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
+}
+
+function toRomaji(str) {
+  const map = {
+    あ:'a',い:'i',う:'u',え:'e',お:'o',
+    か:'ka',き:'ki',く:'ku',け:'ke',こ:'ko',
+    さ:'sa',し:'shi',す:'su',せ:'se',そ:'so',
+    た:'ta',ち:'chi',つ:'tsu',て:'te',と:'to',
+    な:'na',に:'ni',ぬ:'nu',ね:'ne',の:'no',
+    は:'ha',ひ:'hi',ふ:'fu',へ:'he',ほ:'ho',
+    ま:'ma',み:'mi',む:'mu',め:'me',も:'mo',
+    や:'ya',ゆ:'yu',よ:'yo',
+    ら:'ra',り:'ri',る:'ru',れ:'re',ろ:'ro',
+    わ:'wa',ん:'n'
+  };
+  return str.split('').map(c => map[c] || c).join('');
+}
+
+function convert(key, value) {
+  if (key === "性別") return value === "0" ? "♂" : value === "1" ? "♀" : "不明";
+  if (key === "一人前") return value === "1" ? "〇" : value === "0" ? "×" : "不明";
+  if (key === "公募") return value === "0" ? "×" : value === "1" ? "〇" : value === "2" ? "スタッフ" : "不明";
+  if (key === "魔法の呪文") return value === "1" ? "ここんぽいぽいここったま！" : "不明";
+  if (value === "0") return "不明";
+  return value;
+}
+
+const search = document.getElementById("search");
+const suggest = document.getElementById("suggest");
+const result = document.getElementById("result");
+
+// フォーカス時：全件を50音順で表示
+search.addEventListener("focus", () => {
+  renderList(data);
 });
 
-// カタカナをひらがなに変換
-function toHiragana(str){
-  return str.replace(/[\u30A1-\u30F6]/g, match => String.fromCharCode(match.charCodeAt(0)-0x60)).toLowerCase();
-}
+search.addEventListener("input", () => {
+  const q = search.value.toLowerCase();
+  currentIndex = -1;
 
-// 簡易ローマ字変換
-function toRomaji(str){
-  const map = {
-    'あ':'a','い':'i','う':'u','え':'e','お':'o',
-    'か':'ka','き':'ki','く':'ku','け':'ke','こ':'ko',
-    'さ':'sa','し':'shi','す':'su','せ':'se','そ':'so',
-    'た':'ta','ち':'chi','つ':'tsu','て':'te','と':'to',
-    'な':'na','に':'ni','ぬ':'nu','ね':'ne','の':'no',
-    'は':'ha','ひ':'hi','ふ':'fu','へ':'he','ほ':'ho',
-    'ま':'ma','み':'mi','む':'mu','め':'me','も':'mo',
-    'や':'ya','ゆ':'yu','よ':'yo',
-    'ら':'ra','り':'ri','る':'ru','れ':'re','ろ':'ro',
-    'わ':'wa','を':'wo','ん':'n'
-  };
-  let result = '';
-  for(let i=0;i<str.length;i++){
-    result += map[str[i]] || str[i];
+  if (!q) {
+    renderList(data);
+    return;
   }
-  return result;
-}
 
-// 正規表現用
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// 検索処理
-function searchCharacter(){
-  const val = inputField.value.trim().toLowerCase();
-  const resultDiv = document.getElementById('result');
-  if(!val){ resultDiv.innerHTML='<p>名前を入力してください。</p>'; return; }
-
-  const matches = characters.filter(c => 
-      c.名前.startsWith(inputField.value) ||
-      c.nameHira.startsWith(val) ||
-      c.nameRomaji.startsWith(val)
+  const filtered = data.filter(d =>
+    d["名前"].startsWith(search.value) ||
+    d._hira.startsWith(q) ||
+    d._roma.startsWith(q)
   );
 
-  if(matches.length===0){ resultDiv.innerHTML='<p>見つかりませんでした。</p>'; return; }
-
-  let html='';
-  matches.forEach(c=>{
-    html+='<table><tr><th>項目</th><th>情報</th></tr>';
-    for(const key in c){
-      if(['nameHira','nameRomaji'].includes(key)) continue;
-      const value=c[key]?c[key]:'';
-      html+=`<tr><td>${key}</td><td>${value}</td></tr>`;
-    }
-    html+='</table><br>';
-  });
-  resultDiv.innerHTML=html;
-}
-
-// オートコンプリート（頭文字一致）
-const inputField=document.getElementById("nameInput");
-const suggestionBox=document.getElementById("suggestions");
-
-function updateSuggestions(){
-  const val=inputField.value.trim().toLowerCase();
-  suggestionBox.innerHTML=''; selectedIndex=-1;
-  if(!val) return;
-
-  const suggestions=characters
-    .filter(c => c.名前.startsWith(inputField.value) || c.nameHira.startsWith(val) || c.nameRomaji.startsWith(val))
-    .map(c=>c.名前)
-    .slice(0,20);
-
-  suggestions.forEach(name=>{
-    const li=document.createElement("li");
-    li.textContent=name;
-    li.addEventListener("click",function(){
-      inputField.value=name;
-      suggestionBox.innerHTML='';
-      searchCharacter();
-    });
-    suggestionBox.appendChild(li);
-  });
-}
-
-inputField.addEventListener("input",updateSuggestions);
-
-// キー操作（上下/Enter/Tab）
-inputField.addEventListener("keydown",function(e){
-  const items=suggestionBox.querySelectorAll("li");
-  if(items.length===0) return;
-
-  if(e.key==="ArrowDown"){ 
-    e.preventDefault(); 
-    if(selectedIndex<items.length-1) selectedIndex++; 
-    highlightItem(items); 
-    scrollToItem(items[selectedIndex]); 
-  } else if(e.key==="ArrowUp"){ 
-    e.preventDefault(); 
-    if(selectedIndex>0) selectedIndex--; 
-    highlightItem(items); 
-    scrollToItem(items[selectedIndex]); 
-  } else if(e.key==="Enter" || e.key==="Tab"){  // Tabでも選択
-    e.preventDefault();
-    if(selectedIndex>=0){
-      inputField.value = items[selectedIndex].textContent;
-    }
-    suggestionBox.innerHTML='';
-    searchCharacter();
-  }
+  renderList(filtered);
 });
 
-function highlightItem(items){ items.forEach((li,i)=>li.classList.toggle("highlight",i===selectedIndex)); }
+function renderList(list) {
+  suggest.innerHTML = "";
+  list.slice(0, 50).forEach(d => {
+    const li = document.createElement("li");
+    li.textContent = d["名前"];
+    li.onclick = () => show(d);
+    suggest.appendChild(li);
+  });
+}
 
-function scrollToItem(item){ 
-  if(item){ 
-    const c=suggestionBox; 
-    const ct=c.scrollTop; 
-    const cb=ct+c.offsetHeight; 
-    const it=item.offsetTop; 
-    const ib=it+item.offsetHeight; 
-    if(ib>cb) c.scrollTop+=ib-cb; 
-    else if(it<ct) c.scrollTop-=ct-it; 
-  } 
+search.addEventListener("keydown", e => {
+  const items = suggest.querySelectorAll("li");
+  if (!items.length) return;
+
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    currentIndex = (currentIndex + 1) % items.length;
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    currentIndex = (currentIndex - 1 + items.length) % items.length;
+  } else if (e.key === "Enter" || e.key === "Tab") {
+    e.preventDefault();
+    items[currentIndex]?.click();
+    return;
+  }
+
+  items.forEach((li, i) => li.classList.toggle("active", i === currentIndex));
+});
+
+function show(d) {
+  suggest.innerHTML = "";
+  search.value = d["名前"];
+  result.innerHTML = '<div class="card">' +
+    Object.keys(d)
+      .filter(k => !k.startsWith("_"))
+      .map(k => `<p><strong>${k}</strong>：${convert(k, d[k])}</p>`)
+      .join("") +
+    '</div>';
 }
 </script>
 
