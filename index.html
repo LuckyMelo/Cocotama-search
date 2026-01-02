@@ -5,11 +5,22 @@
   <title>ここたま検索</title>
   <style>
     body { font-family: sans-serif; padding: 20px; }
-    input { width: 300px; padding: 8px; font-size: 16px; }
-    ul { list-style: none; padding: 0; margin: 0; width: 300px; border: 1px solid #ccc; max-height: 220px; overflow-y: auto; position: absolute; background: #fff; z-index: 10; }
+    input { width: 320px; padding: 8px; font-size: 16px; }
+    ul { list-style: none; padding: 0; margin: 0; width: 320px; border: 1px solid #ccc; max-height: 240px; overflow-y: auto; position: absolute; background: #fff; }
     li { cursor: pointer; padding: 6px; }
     li.active { background: #eee; }
-    .card { border: 1px solid #ccc; border-radius: 8px; padding: 16px; margin-top: 20px; max-width: 500px; }
+    .card {
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      max-width: 520px;
+    }
+    .card img {
+      max-width: 200px;
+      display: block;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
@@ -40,7 +51,7 @@ fetch("cocotama.csv")
       return obj;
     });
 
-    // 50音順（ひらがな）でソート
+    // 50音順（ひらがな基準）でソート
     data.sort((a, b) => a._hira.localeCompare(b._hira, 'ja'));
   });
 
@@ -65,79 +76,108 @@ function toRomaji(str) {
 }
 
 function convert(key, value) {
-  if (key === "性別") return value === "0" ? "♂" : value === "1" ? "♀" : "不明";
+  if (key === "性別") return value === "1" ? "♀" : value === "0" ? "♂" : "不明";
   if (key === "一人前") return value === "1" ? "〇" : value === "0" ? "×" : "不明";
-  if (key === "公募") return value === "0" ? "×" : value === "1" ? "〇" : value === "2" ? "スタッフ" : "不明";
-  if (key === "魔法の呪文") return value === "1" ? "ここんぽいぽいここったま！" : "不明";
+  if (key === "公募") return value === "1" ? "〇" : value === "0" ? "×" : value === "2" ? "スタッフ" : "不明";
+  if (key === "魔法の呪文") return value === "1" ? "ここんぽいぽいここったま！" : value === "0" ? "不明" : value;
   if (value === "0") return "不明";
   return value;
 }
 
-const search = document.getElementById("search");
-const suggest = document.getElementById("suggest");
-const result = document.getElementById("result");
+function createCharacterImage(enName) {
+  const exts = ['webp', 'png', 'jpg'];
+  const img = document.createElement('img');
+  let i = 0;
 
-// フォーカス時：全件を50音順で表示
-search.addEventListener("focus", () => {
-  renderList(data);
-});
+  function tryLoad() {
+    if (i >= exts.length) {
+      img.style.display = 'none';
+      return;
+    }
+    img.src = `images/${enName}.${exts[i++]}`;
+  }
 
-search.addEventListener("input", () => {
+  img.onerror = tryLoad;
+  tryLoad();
+  return img;
+}
+
+const search = document.getElementById('search');
+const suggest = document.getElementById('suggest');
+const result = document.getElementById('result');
+
+// フォーカス時：全件50音順表示
+search.addEventListener('focus', () => renderSuggestions(data));
+search.addEventListener('input', update);
+
+function update() {
   const q = search.value.toLowerCase();
-  currentIndex = -1;
-
   if (!q) {
-    renderList(data);
+    renderSuggestions(data);
     return;
   }
 
   const filtered = data.filter(d =>
-    d["名前"].startsWith(search.value) ||
+    d['名前'].startsWith(search.value) ||
     d._hira.startsWith(q) ||
     d._roma.startsWith(q)
   );
 
-  renderList(filtered);
-});
+  renderSuggestions(filtered);
+}
 
-function renderList(list) {
-  suggest.innerHTML = "";
+function renderSuggestions(list) {
+  suggest.innerHTML = '';
+  currentIndex = -1;
   list.slice(0, 50).forEach(d => {
-    const li = document.createElement("li");
-    li.textContent = d["名前"];
+    const li = document.createElement('li');
+    li.textContent = d['名前'];
     li.onclick = () => show(d);
     suggest.appendChild(li);
   });
 }
 
-search.addEventListener("keydown", e => {
-  const items = suggest.querySelectorAll("li");
+search.addEventListener('keydown', e => {
+  const items = suggest.querySelectorAll('li');
   if (!items.length) return;
 
-  if (e.key === "ArrowDown") {
+  if (e.key === 'ArrowDown') {
     e.preventDefault();
     currentIndex = (currentIndex + 1) % items.length;
-  } else if (e.key === "ArrowUp") {
+  } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     currentIndex = (currentIndex - 1 + items.length) % items.length;
-  } else if (e.key === "Enter" || e.key === "Tab") {
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault();
     items[currentIndex]?.click();
     return;
   }
 
-  items.forEach((li, i) => li.classList.toggle("active", i === currentIndex));
+  items.forEach((li, i) => li.classList.toggle('active', i === currentIndex));
 });
 
 function show(d) {
-  suggest.innerHTML = "";
-  search.value = d["名前"];
-  result.innerHTML = '<div class="card">' +
-    Object.keys(d)
-      .filter(k => !k.startsWith("_"))
-      .map(k => `<p><strong>${k}</strong>：${convert(k, d[k])}</p>`)
-      .join("") +
-    '</div>';
+  suggest.innerHTML = '';
+  search.value = d['名前'];
+  result.innerHTML = '';
+
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  // EN-Name を使って画像表示
+  if (d['EN-Name']) {
+    card.appendChild(createCharacterImage(d['EN-Name']));
+  }
+
+  Object.keys(d)
+    .filter(k => !k.startsWith('_'))
+    .forEach(k => {
+      const p = document.createElement('p');
+      p.innerHTML = `<strong>${k}</strong>：${convert(k, d[k])}`;
+      card.appendChild(p);
+    });
+
+  result.appendChild(card);
 }
 </script>
 
