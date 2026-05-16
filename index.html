@@ -1,60 +1,338 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ここたま検索</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    input { width: 320px; padding: 8px; font-size: 16px; }
-    ul { list-style: none; padding: 0; margin: 0; width: 320px; border: 1px solid #ccc; max-height: 240px; overflow-y: auto; position: absolute; background: #fff; }
-    li { cursor: pointer; padding: 6px; }
-    li.active { background: #eee; }
-    .card {
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 16px;
-      margin-top: 20px;
-      max-width: 520px;
+    :root {
+      --pink:    #ff7eb3;
+      --pink-lt: #ffd6ea;
+      --purple:  #c084fc;
+      --yellow:  #fde047;
+      --mint:    #6ee7b7;
+      --bg:      #fff8fb;
+      --text:    #3b1f3b;
+      --card-bg: #ffffff;
+      --border:  #f0c0dd;
+      --shadow:  rgba(255, 126, 179, 0.18);
     }
-    .card img {
-      max-width: 200px;
-      display: block;
-      margin-bottom: 12px;
-    }
+
+```
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  background: var(--bg);
+  min-height: 100vh;
+  padding: 0 0 60px;
+  color: var(--text);
+  /* soft polka dots */
+  background-image: radial-gradient(circle, #ffd6ea 1.5px, transparent 1.5px);
+  background-size: 28px 28px;
+}
+
+/* ── HEADER ── */
+header {
+  background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
+  padding: 32px 20px 28px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+header::before, header::after {
+  content: '✦';
+  position: absolute;
+  font-size: 80px;
+  opacity: .12;
+  color: #fff;
+}
+header::before { top: -20px; left: -10px; transform: rotate(-15deg); }
+header::after  { bottom: -28px; right: -10px; transform: rotate(20deg); }
+
+header h1 {
+  font-family: 'Kaisei Decol', serif;
+  font-size: clamp(1.8rem, 6vw, 2.8rem);
+  color: #fff;
+  letter-spacing: .08em;
+  text-shadow: 0 2px 12px rgba(0,0,0,.2);
+  position: relative;
+  z-index: 1;
+}
+header p {
+  color: rgba(255,255,255,.85);
+  font-size: .85rem;
+  margin-top: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── SEARCH AREA ── */
+.search-wrap {
+  max-width: 540px;
+  margin: 32px auto 0;
+  padding: 0 16px;
+  position: relative;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 2.5px solid var(--pink);
+  border-radius: 999px;
+  padding: 6px 16px 6px 20px;
+  box-shadow: 0 4px 20px var(--shadow);
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-box:focus-within {
+  border-color: var(--purple);
+  box-shadow: 0 4px 28px rgba(192,132,252,.25);
+}
+
+.search-icon { font-size: 1.2rem; margin-right: 10px; flex-shrink: 0; }
+
+#search {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: inherit;
+  font-size: 1rem;
+  background: transparent;
+  color: var(--text);
+}
+#search::placeholder { color: #d0a0c0; }
+
+.clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.1rem;
+  color: #d0a0c0;
+  padding: 2px 4px;
+  line-height: 1;
+  display: none;
+  transition: color .15s;
+}
+.clear-btn:hover { color: var(--pink); }
+.clear-btn.visible { display: block; }
+
+/* ── DROPDOWN ── */
+#suggest {
+  list-style: none;
+  background: #fff;
+  border: 2px solid var(--border);
+  border-radius: 16px;
+  margin-top: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  position: absolute;
+  left: 16px; right: 16px;
+  z-index: 100;
+  box-shadow: 0 8px 32px var(--shadow);
+  display: none;
+  scrollbar-width: thin;
+  scrollbar-color: var(--pink-lt) transparent;
+}
+#suggest.open { display: block; }
+
+#suggest li {
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: .95rem;
+  border-bottom: 1px solid #fce8f3;
+  transition: background .12s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#suggest li:last-child { border-bottom: none; }
+#suggest li::before { content: '🌟'; font-size: .85rem; }
+#suggest li:hover,
+#suggest li.active {
+  background: var(--pink-lt);
+}
+
+.suggest-count {
+  font-size: .78rem;
+  color: #b08898;
+  padding: 6px 20px 4px;
+  border-bottom: 1px solid #fce8f3;
+}
+
+/* ── RESULT CARD ── */
+#result {
+  max-width: 540px;
+  margin: 24px auto 0;
+  padding: 0 16px;
+}
+
+.card {
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 24px;
+  padding: 28px 28px 24px;
+  box-shadow: 0 8px 32px var(--shadow);
+  animation: popIn .3s cubic-bezier(.34,1.56,.64,1);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(.94) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.card-top {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  margin-bottom: 20px;
+}
+
+.card-img-wrap {
+  flex-shrink: 0;
+  width: 120px;
+  height: 120px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--pink-lt), #ede9fe);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.no-img-placeholder { font-size: 3rem; }
+
+.card-title-area { flex: 1; min-width: 0; }
+.card-name {
+  font-family: 'Kaisei Decol', serif;
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.card-en-name {
+  font-size: .82rem;
+  color: #b08898;
+  margin-top: 4px;
+  letter-spacing: .04em;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--pink-lt);
+  color: #9d4570;
+  border-radius: 999px;
+  font-size: .78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+}
+.badge.purple { background: #ede9fe; color: #7c3aed; }
+.badge.mint   { background: #d1fae5; color: #065f46; }
+.badge.yellow { background: #fef9c3; color: #92400e; }
+
+/* ── DETAIL TABLE ── */
+.detail-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px;
+  background: var(--border);
+  border: 1.5px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+  font-size: .88rem;
+}
+.detail-grid .dl { background: var(--pink-lt); font-weight: 700; padding: 9px 14px; color: #8b3a6a; }
+.detail-grid .dd { background: #fff; padding: 9px 14px; color: var(--text); word-break: break-all; }
+
+/* ── EMPTY / LOADING ── */
+.hint {
+  text-align: center;
+  color: #c0899e;
+  font-size: .92rem;
+  padding: 40px 0;
+}
+.hint .icon { font-size: 3rem; margin-bottom: 8px; }
+
+/* ── SCROLLBAR (webkit) ── */
+#suggest::-webkit-scrollbar { width: 6px; }
+#suggest::-webkit-scrollbar-thumb { background: var(--pink-lt); border-radius: 999px; }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 420px) {
+  .card-top { flex-direction: column; align-items: center; text-align: center; }
+  .badge-row { justify-content: center; }
+  header h1 { font-size: 1.6rem; }
+}
+```
+
   </style>
 </head>
 <body>
 
-<h1>ここたま検索</h1>
-<div style="position: relative;">
-  <input id="search" placeholder="名前を入力（ひらがな・ローマ字OK）" autocomplete="off" />
+<header>
+  <h1>✨ ここたま検索 ✨</h1>
+  <p>名前を入れてここたまを探そう！</p>
+</header>
+
+<div class="search-wrap">
+  <div class="search-box">
+    <span class="search-icon">🔍</span>
+    <input id="search" placeholder="名前を入力（ひらがな・ローマ字OK）" autocomplete="off" />
+    <button class="clear-btn" id="clearBtn" title="クリア">✕</button>
+  </div>
   <ul id="suggest"></ul>
 </div>
-<div id="result"></div>
+
+<div id="result">
+  <div class="hint">
+    <div class="icon">🌸</div>
+    上の検索窓をタップしてここたまを探してね！
+  </div>
+</div>
 
 <script>
 let data = [];
 let currentIndex = -1;
+let suggestOpen = false;
 
+const searchEl  = document.getElementById('search');
+const suggestEl = document.getElementById('suggest');
+const resultEl  = document.getElementById('result');
+const clearBtn  = document.getElementById('clearBtn');
+
+/* ── DATA LOAD ── */
 fetch("cocotama.csv")
-  .then(res => res.text())
+  .then(r => r.text())
   .then(text => {
     const lines = text.trim().split("\n");
     const headers = lines[0].split(",");
-
     data = lines.slice(1).map(line => {
       const values = line.split(",");
       let obj = {};
-      headers.forEach((h, i) => obj[h] = values[i]);
-      obj._hira = toHiragana(obj["名前"]);
+      headers.forEach((h, i) => obj[h] = (values[i] || '').trim());
+      obj._hira = toHiragana(obj["名前"] || '');
       obj._roma = toRomaji(obj._hira);
       return obj;
     });
-
-    // 50音順（ひらがな基準）でソート
     data.sort((a, b) => a._hira.localeCompare(b._hira, 'ja'));
-  });
+  })
+  .catch(() => console.warn('cocotama.csv の読み込みに失敗しました'));
 
+/* ── CONVERTERS ── */
 function toHiragana(str) {
   return str.replace(/[\u30A1-\u30F6]/g, m => String.fromCharCode(m.charCodeAt(0) - 0x60));
 }
@@ -70,75 +348,119 @@ function toRomaji(str) {
     ま:'ma',み:'mi',む:'mu',め:'me',も:'mo',
     や:'ya',ゆ:'yu',よ:'yo',
     ら:'ra',り:'ri',る:'ru',れ:'re',ろ:'ro',
-    わ:'wa',ん:'n'
+    わ:'wa',ん:'n',
+    が:'ga',ぎ:'gi',ぐ:'gu',げ:'ge',ご:'go',
+    ざ:'za',じ:'ji',ず:'zu',ぜ:'ze',ぞ:'zo',
+    だ:'da',ぢ:'di',づ:'du',で:'de',ど:'do',
+    ば:'ba',び:'bi',ぶ:'bu',べ:'be',ぼ:'bo',
+    ぱ:'pa',ぴ:'pi',ぷ:'pu',ぺ:'pe',ぽ:'po',
+    っ:'tt',ー:'-',
   };
   return str.split('').map(c => map[c] || c).join('');
 }
 
-function convert(key, value) {
-  if (key === "性別") return value === "1" ? "♀" : value === "0" ? "♂" : "不明";
-  if (key === "一人前") return value === "1" ? "〇" : value === "0" ? "×" : "不明";
-  if (key === "公募") return value === "1" ? "〇" : value === "0" ? "×" : value === "2" ? "スタッフ" : "不明";
-  if (key === "魔法の呪文") return value === "1" ? "ここんぽいぽいここったま！" : value === "0" ? "不明" : value;
-  if (value === "0") return "不明";
-  return value;
+function convertValue(key, value) {
+  if (!value || value === '0' && key !== '魔法の呪文') {
+    if (key === '性別') return value === '0' ? '♂' : '不明';
+    if (key === '一人前') return value === '0' ? '×' : '不明';
+    if (key === '公募')   return value === '0' ? '×' : '不明';
+    if (value === '0')    return '不明';
+  }
+  if (key === '性別')   return value === '1' ? '♀' : value === '0' ? '♂' : '不明';
+  if (key === '一人前') return value === '1' ? '〇' : value === '0' ? '×' : '不明';
+  if (key === '公募')   return value === '1' ? '〇' : value === '0' ? '×' : value === '2' ? 'スタッフ' : '不明';
+  if (key === '魔法の呪文') {
+    return value === '1' ? 'ここんぽいぽいここったま！' : value === '0' ? '不明' : value;
+  }
+  return value || '不明';
 }
 
+/* ── BADGE helpers ── */
+function genderBadge(val) {
+  const v = convertValue('性別', val);
+  return `<span class="badge ${v === '♀' ? '' : 'purple'}">${v === '♀' ? '♀ 女の子' : v === '♂' ? '♂ 男の子' : '性別不明'}</span>`;
+}
+function boolBadge(label, key, val, cls='mint') {
+  const v = convertValue(key, val);
+  return `<span class="badge ${v === '〇' ? cls : 'yellow'}">${label}：${v}</span>`;
+}
+
+/* ── IMAGE ── */
 function createCharacterImage(enName) {
   const exts = ['webp', 'png', 'jpg'];
   const img = document.createElement('img');
   let i = 0;
-
   function tryLoad() {
-    if (i >= exts.length) {
-      img.style.display = 'none';
-      return;
-    }
+    if (i >= exts.length) { img.style.display = 'none'; return; }
     img.src = `images/${enName}.${exts[i++]}`;
   }
-
   img.onerror = tryLoad;
   tryLoad();
   return img;
 }
 
-const search = document.getElementById('search');
-const suggest = document.getElementById('suggest');
-const result = document.getElementById('result');
+/* ── SUGGEST ── */
+function openSuggest(list) {
+  suggestEl.innerHTML = '';
+  currentIndex = -1;
 
-// フォーカス時：全件50音順表示
-search.addEventListener('focus', () => renderSuggestions(data));
-search.addEventListener('input', update);
-
-function update() {
-  const q = search.value.toLowerCase();
-  if (!q) {
-    renderSuggestions(data);
+  if (!list.length) {
+    suggestEl.classList.remove('open');
+    suggestOpen = false;
     return;
   }
 
-  const filtered = data.filter(d =>
-    d['名前'].startsWith(search.value) ||
-    d._hira.startsWith(q) ||
-    d._roma.startsWith(q)
-  );
+  const shown = list.slice(0, 60);
+  const countEl = document.createElement('div');
+  countEl.className = 'suggest-count';
+  countEl.textContent = `${list.length} 件${list.length > 60 ? '（上位60件表示）' : ''}`;
+  suggestEl.appendChild(countEl);
 
-  renderSuggestions(filtered);
-}
-
-function renderSuggestions(list) {
-  suggest.innerHTML = '';
-  currentIndex = -1;
-  list.slice(0, 50).forEach(d => {
+  shown.forEach(d => {
     const li = document.createElement('li');
     li.textContent = d['名前'];
-    li.onclick = () => show(d);
-    suggest.appendChild(li);
+    li.addEventListener('mousedown', e => { e.preventDefault(); show(d); });
+    suggestEl.appendChild(li);
   });
+
+  suggestEl.classList.add('open');
+  suggestOpen = true;
 }
 
-search.addEventListener('keydown', e => {
-  const items = suggest.querySelectorAll('li');
+function closeSuggest() {
+  suggestEl.classList.remove('open');
+  suggestOpen = false;
+}
+
+function update() {
+  const q = searchEl.value;
+  clearBtn.classList.toggle('visible', q.length > 0);
+
+  if (!q) { openSuggest(data); return; }
+
+  const ql = q.toLowerCase();
+  const filtered = data.filter(d =>
+    d['名前'].startsWith(q) ||
+    d._hira.startsWith(ql) ||
+    d._roma.startsWith(ql)
+  );
+  openSuggest(filtered);
+}
+
+searchEl.addEventListener('focus', () => { update(); });
+searchEl.addEventListener('input', update);
+searchEl.addEventListener('blur',  () => setTimeout(closeSuggest, 150));
+
+clearBtn.addEventListener('click', () => {
+  searchEl.value = '';
+  clearBtn.classList.remove('visible');
+  resultEl.innerHTML = '<div class="hint"><div class="icon">🌸</div>上の検索窓をタップしてここたまを探してね！</div>';
+  searchEl.focus();
+});
+
+searchEl.addEventListener('keydown', e => {
+  if (!suggestOpen) return;
+  const items = suggestEl.querySelectorAll('li');
   if (!items.length) return;
 
   if (e.key === 'ArrowDown') {
@@ -149,35 +471,78 @@ search.addEventListener('keydown', e => {
     currentIndex = (currentIndex - 1 + items.length) % items.length;
   } else if (e.key === 'Enter' || e.key === 'Tab') {
     e.preventDefault();
-    items[currentIndex]?.click();
+    if (currentIndex >= 0) items[currentIndex]?.dispatchEvent(new Event('mousedown'));
     return;
   }
-
   items.forEach((li, i) => li.classList.toggle('active', i === currentIndex));
+  items[currentIndex]?.scrollIntoView({ block: 'nearest' });
 });
 
-function show(d) {
-  suggest.innerHTML = '';
-  search.value = d['名前'];
-  result.innerHTML = '';
+/* ── SHOW CARD ── */
+const HIDDEN_KEYS = ['_hira','_roma','EN-Name'];
+const BADGE_KEYS  = ['性別','一人前','公募'];
+const TOP_KEYS    = ['名前','EN-Name','種族','出身'];
 
+function show(d) {
+  closeSuggest();
+  searchEl.value = d['名前'];
+  clearBtn.classList.add('visible');
+
+  /* build card */
   const card = document.createElement('div');
   card.className = 'card';
 
-  // EN-Name を使って画像表示
+  /* top area: image + name + badges */
+  const top = document.createElement('div');
+  top.className = 'card-top';
+
+  const imgWrap = document.createElement('div');
+  imgWrap.className = 'card-img-wrap';
   if (d['EN-Name']) {
-    card.appendChild(createCharacterImage(d['EN-Name']));
+    imgWrap.appendChild(createCharacterImage(d['EN-Name']));
+  } else {
+    imgWrap.innerHTML = '<span class="no-img-placeholder">🌟</span>';
   }
 
-  Object.keys(d)
-    .filter(k => !k.startsWith('_'))
-    .forEach(k => {
-      const p = document.createElement('p');
-      p.innerHTML = `<strong>${k}</strong>：${convert(k, d[k])}`;
-      card.appendChild(p);
-    });
+  const titleArea = document.createElement('div');
+  titleArea.className = 'card-title-area';
+  titleArea.innerHTML = `
+    <div class="card-name">${d['名前'] || '？'}</div>
+    ${d['EN-Name'] ? `<div class="card-en-name">${d['EN-Name']}</div>` : ''}
+    <div class="badge-row">
+      ${genderBadge(d['性別'])}
+      ${d['一人前'] !== undefined ? boolBadge('一人前','一人前', d['一人前']) : ''}
+      ${d['公募'] !== undefined ? boolBadge('公募','公募', d['公募'], 'purple') : ''}
+    </div>
+  `;
 
-  result.appendChild(card);
+  top.appendChild(imgWrap);
+  top.appendChild(titleArea);
+  card.appendChild(top);
+
+  /* detail grid — skip already-shown keys */
+  const skipKeys = new Set([...HIDDEN_KEYS, ...BADGE_KEYS, '名前']);
+  const rows = Object.keys(d)
+    .filter(k => !k.startsWith('_') && !skipKeys.has(k));
+
+  if (rows.length) {
+    const grid = document.createElement('div');
+    grid.className = 'detail-grid';
+    rows.forEach(k => {
+      const dl = document.createElement('div');
+      dl.className = 'dl';
+      dl.textContent = k;
+      const dd = document.createElement('div');
+      dd.className = 'dd';
+      dd.textContent = convertValue(k, d[k]);
+      grid.appendChild(dl);
+      grid.appendChild(dd);
+    });
+    card.appendChild(grid);
+  }
+
+  resultEl.innerHTML = '';
+  resultEl.appendChild(card);
 }
 </script>
 
