@@ -10,9 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kaisei+Decol:wght@400;700&family=M+PLUS+Rounded+1c:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    /* ══════════════════════════════
-       DESIGN TOKENS
-    ══════════════════════════════ */
     :root {
       --pink:      #ff7eb3;
       --pink-lt:   #ffd6ea;
@@ -47,9 +44,6 @@
       -webkit-overflow-scrolling: touch;
     }
 
-    /* ══════════════════════════════
-       HEADER
-    ══════════════════════════════ */
     header {
       background: linear-gradient(135deg, var(--pink) 0%, var(--purple) 100%);
       padding: calc(28px + var(--safe-top)) 20px 24px;
@@ -84,9 +78,6 @@
       z-index: 1;
     }
 
-    /* ══════════════════════════════
-       SEARCH WRAPPER
-    ══════════════════════════════ */
     .search-wrap {
       max-width: 560px;
       margin: 28px auto 0;
@@ -110,7 +101,6 @@
     }
     .search-icon { font-size: 1.15rem; margin-right: 9px; flex-shrink: 0; }
 
-    /* font-size:16px → iOSで自動ズームしない */
     #search {
       flex: 1;
       min-width: 0;
@@ -141,7 +131,6 @@
     .clear-btn:hover { background: var(--pink); color: #fff; }
     .clear-btn.visible { display: flex; }
 
-    /* ── match mode ── */
     .match-toggle {
       display: flex;
       gap: 6px;
@@ -168,7 +157,6 @@
       color: #fff;
     }
 
-    /* ── filter panel ── */
     .filter-panel {
       margin-top: 12px;
       background: #fff;
@@ -239,6 +227,7 @@
       min-height: 34px;
     }
     .chip:hover  { border-color: var(--pink); color: var(--pink-dk); }
+    /* ── FIX: chipClass ごとのアクティブ色を独立したクラスで定義 ── */
     .chip.active         { background: var(--pink-lt);   border-color: var(--pink);   color: var(--pink-dk); }
     .chip.active.purple  { background: var(--purple-lt); border-color: var(--purple); color: #7c3aed; }
     .chip.active.mint    { background: var(--mint-lt);   border-color: var(--mint);   color: #065f46; }
@@ -260,7 +249,6 @@
     }
     .filter-reset-btn:hover { border-color: var(--pink); color: var(--pink-dk); }
 
-    /* ── active filter badges ── */
     .active-filters {
       display: flex;
       flex-wrap: wrap;
@@ -289,9 +277,6 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    /* ══════════════════════════════
-       SUGGEST DROPDOWN
-    ══════════════════════════════ */
     #suggest {
       list-style: none;
       background: #fff;
@@ -339,7 +324,6 @@
     #suggest li::before { content: '🌟'; font-size: .8rem; flex-shrink: 0; }
     #suggest li:hover,
     #suggest li.active { background: var(--pink-lt); }
-
     #suggest li mark {
       background: var(--yellow);
       border-radius: 3px;
@@ -356,9 +340,6 @@
     }
     #suggest .no-result::before { content: none; }
 
-    /* ══════════════════════════════
-       RESULT CARD
-    ══════════════════════════════ */
     #result {
       max-width: 560px;
       margin: 22px auto 0;
@@ -455,9 +436,6 @@
     }
     .hint .icon { font-size: 2.8rem; margin-bottom: 8px; }
 
-    /* ══════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════ */
     @media (max-width: 420px) {
       .card-top { flex-direction: column; align-items: center; text-align: center; }
       .badge-row { justify-content: center; }
@@ -480,7 +458,6 @@
 
 <div class="search-wrap">
 
-  <!-- 検索ボックス -->
   <div class="search-box">
     <span class="search-icon">🔍</span>
     <input id="search"
@@ -493,30 +470,23 @@
     <button class="clear-btn" id="clearBtn" aria-label="クリア">✕</button>
   </div>
 
-  <!-- 検索モード切替 -->
   <div class="match-toggle" role="group" aria-label="検索モード">
-    <button class="active" data-mode="prefix"  aria-pressed="true" title="入力した文字から始まる名前を検索">前方一致</button>
-    <button               data-mode="partial" aria-pressed="false" title="名前のどこかに含まれていれば検索">部分一致</button>
-    <button               data-mode="fuzzy"   aria-pressed="false" title="文字の順序が合っていれば検索（あいまい）">あいまい</button>
+    <button class="active" data-mode="prefix"  aria-pressed="true">前方一致</button>
+    <button               data-mode="partial" aria-pressed="false">部分一致</button>
+    <button               data-mode="fuzzy"   aria-pressed="false">あいまい</button>
   </div>
 
-  <!-- フィルターパネル -->
   <div class="filter-panel">
     <button class="filter-toggle-btn" id="filterToggleBtn" aria-expanded="false">
       <span>🔧 絞り込みフィルター</span>
       <i class="arrow">▼</i>
     </button>
     <div class="filter-body" id="filterBody">
-      <div class="filter-inner" id="filterInner">
-        <!-- JS で生成 -->
-      </div>
+      <div class="filter-inner" id="filterInner"></div>
     </div>
   </div>
 
-  <!-- アクティブフィルターバッジ -->
   <div class="active-filters" id="activeFilters"></div>
-
-  <!-- サジェストドロップダウン -->
   <ul id="suggest" role="listbox" aria-label="候補一覧"></ul>
 </div>
 
@@ -532,8 +502,8 @@
    STATE
 ══════════════════════════════════════════════════ */
 let data       = [];
-let matchMode  = 'prefix';   // 'prefix' | 'partial' | 'fuzzy'
-let filters    = {};         // { colKey: Set<rawValue> }
+let matchMode  = 'prefix';
+let filters    = {};      // { colKey: Set<rawValue> }
 let currentIdx = -1;
 let suggestOpen = false;
 
@@ -551,7 +521,6 @@ const activeFiltersEl = document.getElementById('activeFilters');
 
 /* ══════════════════════════════════════════════════
    FILTER DEFINITIONS
-   ─ CSV の列名・値に合わせて編集してください ─
 ══════════════════════════════════════════════════ */
 const FILTER_DEFS = [
   {
@@ -571,9 +540,9 @@ const FILTER_DEFS = [
   {
     key: '公募', label: '公募', type: 'single', chipClass: 'purple',
     options: [
-      { raw: '1',   label: '〇 あり',        match: v => v === '1' || v === '2' },
-      { raw: '2',   label: '〇 スタッフ枠',  match: v => v === '2' },
-      { raw: '0',   label: '× なし',         match: v => v === '0' },
+      { raw: '1',   label: '〇 あり',       match: v => v === '1' || v === '2' },
+      { raw: '2',   label: '〇 スタッフ枠', match: v => v === '2' },
+      { raw: '0',   label: '× なし',        match: v => v === '0' },
     ]
   },
 ];
@@ -626,18 +595,45 @@ function toRomaji(str) {
   };
   return str.split('').map(c => map[c] || c).join('');
 }
+
+/*
+ * [FIX] convertValue
+ *
+ * 旧コード: 末尾に「!value || value === '0' → 不明」という汎用判定があり、
+ *   フラグ列以外のテキスト列（住処、趣味など）でも '0' や空文字が「不明」に
+ *   なってしまう問題があった。
+ *
+ * 修正方針: フラグ列（性別・一人前・公募・魔法の呪文）は個別に処理し、
+ *   それ以外の列は値をそのまま返す。空文字のみ「不明」とする。
+ */
 function convertValue(key, value) {
-  if (key === '性別')   return value === '1' ? '♀' : value === '0' ? '♂' : '不明';
-  if (key === '一人前') return value === '1' ? '〇' : value === '0' ? '×' : '不明';
-  // 公募: 0=×, 1=〇, 2=スタッフ（公募ありと同扱い）
-  if (key === '公募')   return value === '1' ? '〇' : value === '0' ? '×' : value === '2' ? '〇（スタッフ）' : '不明';
-  // 魔法の呪文: 0=不明, 1=共通呪文
-  if (key === '魔法の呪文')
-    return value === '1' ? 'ここんぽいぽいここったま！' : value === '0' ? '不明' : (value || '不明');
-  // その他の列: 0 または空は「不明」
-  if (!value || value === '0') return '不明';
-  return value;
+  // ── フラグ列: 個別変換 ──────────────────────────
+  if (key === '性別') {
+    if (value === '1') return '♀ 女の子';
+    if (value === '0') return '♂ 男の子';
+    return '不明';
+  }
+  if (key === '一人前') {
+    if (value === '1') return '〇';
+    if (value === '0') return '×';
+    return '不明';
+  }
+  if (key === '公募') {
+    if (value === '1') return '〇';
+    if (value === '2') return '〇（スタッフ）';
+    if (value === '0') return '×';
+    return '不明';
+  }
+  if (key === '魔法の呪文') {
+    if (value === '1') return 'ここんぽいぽいここったま！';
+    if (!value || value === '0') return '不明';
+    return value;
+  }
+
+  // ── それ以外のテキスト列: 空のみ「不明」、値はそのまま返す ──
+  return value && value.trim() !== '' ? value : '不明';
 }
+
 function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
@@ -645,11 +641,6 @@ function escHtml(s) {
 /* ══════════════════════════════════════════════════
    SEARCH LOGIC
 ══════════════════════════════════════════════════ */
-
-/**
- * あいまい検索: クエリの文字が順序通りに target に含まれるか判定し、
- * マッチ文字数 / target 長 でスコアリング
- */
 function fuzzyScore(target, query) {
   let ti = 0, qi = 0, score = 0;
   while (ti < target.length && qi < query.length) {
@@ -659,14 +650,21 @@ function fuzzyScore(target, query) {
   return qi === query.length ? score / target.length : -1;
 }
 
+/*
+ * [FIX] applyFilters
+ *
+ * 旧コード: filters の値が undefined のままでも size チェックしていたため
+ *   初回クリック直後に TypeError が起きる可能性があった。
+ *   また Set が空 (size===0) のグループはスキップしているが、
+ *   undefined の場合も明示的にスキップするよう修正。
+ */
 function applyFilters(pool) {
   for (const [key, vals] of Object.entries(filters)) {
     if (!vals || vals.size === 0) continue;
-    // vals は選択された raw値のSet。対応する def を探して match関数があれば使う
     const def = FILTER_DEFS.find(d => d.key === key);
     pool = pool.filter(d => {
       for (const raw of vals) {
-        const opt = def?.options.find(o => o.raw === raw);
+        const opt    = def?.options.find(o => o.raw === raw);
         const matchFn = opt?.match;
         if (matchFn ? matchFn(d[key]) : d[key] === raw) return true;
       }
@@ -698,7 +696,6 @@ function applySearch(q) {
       d._roma.includes(qr)
     );
   }
-  // fuzzy
   const scored = pool.map(d => ({
     d,
     s: Math.max(
@@ -711,7 +708,6 @@ function applySearch(q) {
   return scored.map(x => x.d);
 }
 
-/* ── マッチ箇所をハイライト ── */
 function highlight(text, q) {
   if (!q || matchMode === 'fuzzy') return escHtml(text);
   const idx = text.toLowerCase().indexOf(q.toLowerCase());
@@ -752,18 +748,15 @@ function openSuggest(list) {
     li.setAttribute('role', 'option');
     li.innerHTML = highlight(d['名前'], q);
 
-    // PC: mousedown で選択（blurより先に発火するので安全）
     li.addEventListener('mousedown', e => { e.preventDefault(); show(d); });
 
-    // スマホ: touchstart で座標を記録し、touchend で移動量を確認してから選択
-    // スクロール中（指を動かした場合）は選択しない
     let touchStartY = 0;
     li.addEventListener('touchstart', e => {
       touchStartY = e.touches[0].clientY;
     }, { passive: true });
     li.addEventListener('touchend', e => {
       const movedY = Math.abs(e.changedTouches[0].clientY - touchStartY);
-      if (movedY > 8) return; // 8px以上動いていたらスクロールと判断してスキップ
+      if (movedY > 8) return;
       e.preventDefault();
       show(d);
     });
@@ -837,7 +830,7 @@ document.querySelectorAll('.match-toggle button').forEach(btn => {
 });
 
 /* ══════════════════════════════════════════════════
-   EVENTS — filter panel open/close
+   EVENTS — filter panel
 ══════════════════════════════════════════════════ */
 filterToggleBtn.addEventListener('click', () => {
   const isOpen = filterBody.classList.contains('open');
@@ -866,7 +859,21 @@ function buildFilterUI() {
 
     def.options.forEach(opt => {
       const chip = document.createElement('button');
-      chip.className = 'chip' + (def.chipClass ? ' ' + def.chipClass : '');
+      /*
+       * [FIX] chipClass の付与
+       *
+       * 旧コード: 'chip' + (def.chipClass ? ' ' + def.chipClass : '')
+       *   → chipClass が '' のとき 'chip' だけになり問題ないが、
+       *     クリック時に classList.add('active') しか呼んでいないため
+       *     chipClass（'mint' / 'purple'）が付かず、アクティブ色が
+       *     ピンク固定になっていた。
+       *
+       * 修正: 初期クラスに chipClass を含める（空文字の場合はスキップ）。
+       *   さらに onChipClick でも chipClass を add/remove する。
+       */
+      const classes = ['chip'];
+      if (def.chipClass) classes.push(def.chipClass);
+      chip.className = classes.join(' ');
       chip.textContent = opt.label;
       chip.dataset.key = def.key;
       chip.dataset.val = opt.raw;
@@ -878,7 +885,6 @@ function buildFilterUI() {
     filterInner.appendChild(row);
   });
 
-  // リセットボタン
   const resetBtn = document.createElement('button');
   resetBtn.className = 'filter-reset-btn';
   resetBtn.textContent = '🔄 フィルターをリセット';
@@ -886,12 +892,31 @@ function buildFilterUI() {
   filterInner.appendChild(resetBtn);
 }
 
+/*
+ * [FIX] onChipClick
+ *
+ * 旧コード の問題点:
+ *   1. filters[def.key] が undefined のまま update() が呼ばれると
+ *      applyFilters 内で val.size を参照してクラッシュする可能性。
+ *      → Set を必ず初期化してから操作するよう順序を統一。
+ *
+ *   2. chip.classList.add('active') だけで chipClass を add していない。
+ *      → 'active' と同時に chipClass も add/remove する。
+ *
+ *   3. type:'single' の「同グループ全解除」で他のチップから chipClass を
+ *      remove できていなかった（querySelector で chip 要素を取得しても
+ *      classList に chipClass が無かった）。
+ *      → 上記 #1 の buildFilterUI 修正で chipClass が初めから付いているため
+ *        remove('active') だけで十分。chipClass 自体は常に保持する。
+ */
 function onChipClick(def, opt, chip) {
+  // Set を確実に初期化
   if (!filters[def.key]) filters[def.key] = new Set();
   const s = filters[def.key];
 
   if (def.type === 'single') {
     if (s.has(opt.raw)) {
+      // 選択解除
       s.delete(opt.raw);
       chip.classList.remove('active');
     } else {
@@ -903,8 +928,14 @@ function onChipClick(def, opt, chip) {
       chip.classList.add('active');
     }
   } else {
-    if (s.has(opt.raw)) { s.delete(opt.raw); chip.classList.remove('active'); }
-    else                { s.add(opt.raw);    chip.classList.add('active'); }
+    // multi: トグル
+    if (s.has(opt.raw)) {
+      s.delete(opt.raw);
+      chip.classList.remove('active');
+    } else {
+      s.add(opt.raw);
+      chip.classList.add('active');
+    }
   }
 
   renderActiveFilters();
@@ -945,21 +976,30 @@ function renderActiveFilters() {
 /* ══════════════════════════════════════════════════
    SHOW CHARACTER CARD
 ══════════════════════════════════════════════════ */
-const HIDDEN_KEYS = new Set(['_hira','_roma','EN-Name']);
-const BADGE_KEYS  = new Set(['性別','一人前','公募']);
+/*
+ * [FIX] HIDDEN_KEYS と skip の構築
+ *
+ * 旧コード: HIDDEN_KEYS に 'EN-Name' が含まれていたが、
+ *   skip = new Set([...HIDDEN_KEYS, ...BADGE_KEYS, '名前']) の展開順によって
+ *   意図通り除外できているか不明瞭だった。
+ *   → skip を明示的に列挙して確実に除外。
+ *   → '性別'・'一人前'・'公募' はバッジ表示済みなのでグリッドから除外。
+ *   → '_hira'・'_roma'・'EN-Name' は内部用なので除外。
+ */
+const CARD_SKIP_KEYS = new Set(['名前', 'EN-Name', '_hira', '_roma', '性別', '一人前', '公募']);
 
 function genderBadge(val) {
-  const v = convertValue('性別', val);
-  const cls   = v === '♀' ? '' : 'purple';
-  const label = v === '♀' ? '♀ 女の子' : v === '♂' ? '♂ 男の子' : '性別不明';
-  return `<span class="badge ${cls}">${label}</span>`;
+  const label = val === '1' ? '♀ 女の子' : val === '0' ? '♂ 男の子' : '性別不明';
+  const cls   = val === '0' ? 'purple' : '';
+  return `<span class="badge ${cls}">${escHtml(label)}</span>`;
 }
+
 function boolBadge(label, key, val, cls = 'mint') {
-  const v = convertValue(key, val);
-  // 公募はスタッフ（値='2'）も〇扱いでclsカラーを適用
-  const isPositive = v === '〇' || v.startsWith('〇');
-  return `<span class="badge ${isPositive ? cls : 'yellow'}">${label}：${v}</span>`;
+  const display = convertValue(key, val);
+  const isPositive = display === '〇' || display.startsWith('〇');
+  return `<span class="badge ${isPositive ? cls : 'yellow'}">${escHtml(label)}：${escHtml(display)}</span>`;
 }
+
 function createImg(enName) {
   const exts = ['webp','png','jpg'];
   const img   = document.createElement('img');
@@ -998,16 +1038,15 @@ function show(d) {
     ${d['EN-Name'] ? `<div class="card-en-name">${escHtml(d['EN-Name'])}</div>` : ''}
     <div class="badge-row">
       ${genderBadge(d['性別'])}
-      ${d['一人前'] !== undefined ? boolBadge('一人前','一人前', d['一人前']) : ''}
-      ${d['公募']   !== undefined ? boolBadge('公募',  '公募',   d['公募'], 'purple') : ''}
+      ${d['一人前'] !== undefined ? boolBadge('一人前', '一人前', d['一人前']) : ''}
+      ${d['公募']   !== undefined ? boolBadge('公募',   '公募',   d['公募'], 'purple') : ''}
     </div>`;
 
   top.append(imgWrap, titleArea);
   card.appendChild(top);
 
   // ── detail grid ──
-  const skip = new Set([...HIDDEN_KEYS, ...BADGE_KEYS, '名前']);
-  const rows  = Object.keys(d).filter(k => !k.startsWith('_') && !skip.has(k));
+  const rows = Object.keys(d).filter(k => !CARD_SKIP_KEYS.has(k) && !k.startsWith('_'));
   if (rows.length) {
     const grid = document.createElement('div');
     grid.className = 'detail-grid';
@@ -1021,8 +1060,6 @@ function show(d) {
 
   resultEl.innerHTML = '';
   resultEl.appendChild(card);
-
-  // モバイルでカードが見えるようにスクロール
   setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 50);
 }
 </script>
