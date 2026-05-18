@@ -490,7 +490,7 @@ function toRomaji(str) {
 function convertValue(key, value) {
   if (key==='性別')    { if(value==='1')return'♀ 女の子'; if(value==='0')return'♂ 男の子'; return'不明'; }
   if (key==='一人前')  { if(value==='1')return'〇'; if(value==='0')return'×'; return'不明'; }
-  if (key==='公募')    { if(value==='1')return'〇'; if(value==='2')return'〇（スタッフ）'; if(value==='0')return'×'; }
+  if (key==='公募')    { if(value==='1')return'〇'; if(value==='2')return'〇'; if(value==='0')return'×'; }
   if (key==='魔法の呪文') { if(value==='1')return'ここんぽいぽいここったま！'; if(!value||value==='0')return'不明'; return value; }
   return value && value.trim()!=='' ? value : '不明';
 }
