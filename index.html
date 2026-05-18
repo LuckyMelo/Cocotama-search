@@ -409,10 +409,6 @@ body {
           <button class="sf-pill purple" data-filter="公募" data-val="0">× なし</button>
         </div>
       </div>
-      <div class="sf-group">
-        <div class="sf-label">何から生まれたか</div>
-        <div class="sf-checks" id="birthChecks"></div>
-      </div>
       <button class="sf-reset" id="resetBtn">🔄 フィルターをリセット</button>
     </div>
   </aside>
@@ -446,7 +442,6 @@ const heroCount  = document.getElementById('heroCount');
 const activeBadges = document.getElementById('activeBadges');
 const modalOverlay = document.getElementById('modalOverlay');
 const modal      = document.getElementById('modal');
-const birthChecks= document.getElementById('birthChecks');
 const mobileFilterBtn = document.getElementById('mobileFilterBtn');
 const sidebar    = document.getElementById('sidebar');
 
@@ -517,18 +512,6 @@ fetch('cocotama.csv')
     heroCount.textContent = 'データ読み込みエラー';
     charaGrid.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>cocotama.csv が見つかりません</p></div>';
   });
-
-/* birth checkboxes */
-function buildBirthChecks() {
-  const births = [...new Set(allData.map(d => d['何から生まれたか']).filter(v => v && v !== '0'))].sort();
-  births.forEach(b => {
-    const lbl = document.createElement('label');
-    lbl.className = 'sf-check-label';
-    lbl.innerHTML = `<input type="checkbox" data-filter="何から生まれたか" data-val="${esc(b)}"><span class="sf-dot"></span>${esc(b)}`;
-    lbl.querySelector('input').addEventListener('change', onCheckChange);
-    birthChecks.appendChild(lbl);
-  });
-}
 
 function onCheckChange(e) {
   const { filter, val } = e.target.dataset;
