@@ -313,7 +313,7 @@ body {
   -webkit-tap-highlight-color: transparent; padding: 0 0 0 3px;
 }
 
-/* ─── GRID ─── */
+/* ─── GRID ──�� */
 .chara-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
@@ -586,8 +586,7 @@ body {
       <div class="sf-group">
         <div class="sf-label"><span class="sf-label-dot"></span>公募</div>
         <div class="sf-pills">
-          <button class="sf-pill purple" data-filter="公募" data-val="1" data-match="1,2">〇 あり</button>
-          <button class="sf-pill purple" data-filter="公募" data-val="2">〇 スタッフ枠</button>
+          <button class="sf-pill purple" data-filter="公募" data-val="1,2">〇 あり</button>
           <button class="sf-pill purple" data-filter="公募" data-val="0">× なし</button>
         </div>
       </div>
@@ -634,7 +633,7 @@ function toHiragana(str){
   return str.replace(/[\u30A1-\u30F6]/g,m=>String.fromCharCode(m.charCodeAt(0)-0x60));
 }
 function toRomaji(str){
-  const map={あ:'a',い:'i',う:'u',え:'e',お:'o',か:'ka',き:'ki',く:'ku',け:'ke',こ:'ko',さ:'sa',し:'shi',す:'su',せ:'se',そ:'so',た:'ta',ち:'chi',つ:'tsu',て:'te',と:'to',な:'na',に:'ni',ぬ:'nu',ね:'ne',の:'no',は:'ha',ひ:'hi',ふ:'fu',へ:'he',ほ:'ho',ま:'ma',み:'mi',む:'mu',め:'me',も:'mo',や:'ya',ゆ:'yu',よ:'yo',ら:'ra',り:'ri',る:'ru',れ:'re',ろ:'ro',わ:'wa',ん:'n',が:'ga',ぎ:'gi',ぐ:'gu',げ:'ge',ご:'go',ざ:'za',じ:'ji',ず:'zu',ぜ:'ze',ぞ:'zo',だ:'da',ぢ:'di',づ:'du',で:'de',ど:'do',ば:'ba',び:'bi',ぶ:'bu',べ:'be',ぼ:'bo',ぱ:'pa',ぴ:'pi',ぷ:'pu',ぺ:'pe',ぽ:'po',っ:'tt',ー:'-'};
+  const map={あ:'a',い:'i',う:'u',え:'e',お:'o',か:'ka',き:'ki',く:'ku',け:'ke',こ:'ko',さ:'sa',し:'shi',す:'su',せ:'se',そ:'so',た:'ta',ち:'chi',つ:'tsu',て:'te',と:'to',な:'na',に:'ni',ぬ:'nu',ね:'ne',の:'no',は:'ha',ひ:'hi',ふ:'fu',へ:'he',ほ:'ho',ま:'ma',み:'mi',む:'mu',め:'me',も:'mo',や:'ya',ゆ:'yu',よ:'yo',ら:'ra',り:'ri',る:'ru',れ:'re',ろ:'ro',わ:'wa',を:'wo',ん:'n'};
   return str.split('').map(c=>map[c]||c).join('');
 }
 function convertValue(key,value){
@@ -675,8 +674,7 @@ function matchFilter(d){
     if(!vals||vals.size===0)continue;
     let ok=false;
     for(const raw of vals){
-      const btn=document.querySelector(`.sf-pill[data-filter="${key}"][data-val="${raw}"]`);
-      const matchVals=btn?.dataset.match?btn.dataset.match.split(','):[raw];
+      const matchVals=raw.includes(',')?raw.split(','):[raw];
       if(matchVals.includes(d[key])){ ok=true; break; }
     }
     if(!ok)return false;
@@ -722,7 +720,7 @@ function render(){
       <div class="chara-img-wrap">
         ${enName
           ?`<img src="images/${esc(enName)}.webp"
-               onerror="this.src='images/${esc(enName)}.png';this.onerror=function(){this.src='images/${esc(enName)}.jpg';this.onerror=function(){this.style.display='none';this.parentElement.querySelector('.chara-placeholder').style.display='flex';}}"
+               onerror="this.src='images/${esc(enName)}.png';this.onerror=function(){this.src='images/${esc(enName)}.jpg';this.onerror=function(){this.style.display='none';this.parentElement.querySelector('.chara-placeholder').style.display='';this.onerror=null;};};"
                alt="${esc(d['名前'])}"><span class="chara-placeholder" style="display:none">🌟</span>`
           :`<span class="chara-placeholder">⭐️</span>`}
         <span class="chara-gender ${isF?'f':isM?'m':''}">${isF?'♀':isM?'♂':'？'}</span>
@@ -740,7 +738,7 @@ function render(){
 }
 
 /* badges */
-const BADGE_LABELS={'性別':{'1':'♀ 女の子','0':'♂ 男の子'},'一人前':{'1':'🌟 一人前','0':'🥚 見習い'},'公募':{'1':'〇 あり','2':'〇 スタッフ枠','0':'× なし'}};
+const BADGE_LABELS={'性別':{'1':'♀ 女の子','0':'♂ 男の子'},'一人前':{'1':'🌟 一人前','0':'🥚 見習い'},'公募':{'1':'〇 あり','1,2':'〇 あり（スタッフ枠含む）','0':'× なし'}};
 function renderBadges(){
   activeBadges.innerHTML='';
   for(const [key,vals] of Object.entries(filters)){
@@ -758,7 +756,7 @@ function renderBadges(){
 }
 function removeBadge(key,raw){
   filters[key]?.delete(raw);
-  document.querySelectorAll(`.sf-pill[data-filter="${key}"][data-val="${raw}"]`).forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll(`.sf-pill[data-filter="${key}"][data-val*="${raw.split(',')[0]}"]`).forEach(p=>p.classList.remove('on'));
   renderBadges(); render();
 }
 
@@ -781,7 +779,7 @@ function openModal(d){
       <div class="modal-img-wrap">
         ${enName
           ?`<img src="images/${esc(enName)}.webp"
-               onerror="this.src='images/${esc(enName)}.png';this.onerror=function(){this.src='images/${esc(enName)}.jpg';this.onerror=function(){this.style.display='none';this.parentElement.querySelector('.modal-placeholder').style.display='flex';}}"
+               onerror="this.src='images/${esc(enName)}.png';this.onerror=function(){this.src='images/${esc(enName)}.jpg';this.onerror=function(){this.style.display='none';this.parentElement.querySelector('.modal-placeholder').style.display='';this.onerror=null;};};"
                alt="${esc(d['名前'])}"><span class="modal-placeholder" style="display:none">🌟</span>`
           :`<span class="modal-placeholder">🌟</span>`}
       </div>
