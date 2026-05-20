@@ -521,7 +521,7 @@ body {
   </div>
   <div class="hero-title-wrap">
     <h1>🥚 ここたま検索 🥚</h1>
-    <p class="hero-sub">ヒミツのここたまを探してみよう！</p>
+    <p class="hero-sub">ここたまたちを探してみよう！</p>
     <div class="hero-count" id="heroCount">読み込み中…</div>
   </div>
 </section>
@@ -587,8 +587,8 @@ body {
       <div class="sf-group">
         <div class="sf-label"><span class="sf-label-dot"></span>公募</div>
         <div class="sf-pills">
-          <button class="sf-pill purple" data-filter="公募" data-val="1">⚪ あり</button>
-          <button class="sf-pill purple" data-filter="公募" data-val="2">📝 スタッフ</button>
+          <button class="sf-pill purple" data-filter="公募" data-val="1">○ あり</button>
+          <button class="sf-pill purple" data-filter="公募" data-val="2">スタッフ</button>
           <button class="sf-pill purple" data-filter="公募" data-val="0">× なし</button>
         </div>
       </div>
@@ -641,7 +641,7 @@ function toRomaji(str){
 function convertValue(key,value){
   if(key==='性別'){ if(value==='1')return'♀ 女の子'; if(value==='0')return'♂ 男の子'; return'不明'; }
   if(key==='一人前'){ if(value==='1')return'🌟 一人前'; if(value==='0')return'🥚 見習い'; return'不明'; }
-  if(key==='公募'){ if(value==='1')return'⚪ あり'; if(value==='2')return'📝 スタッフ'; if(value==='0')return'× なし'; return'不明'; }
+  if(key==='公募'){ if(value==='1')return'○ あり'; if(value==='2')return'スタッフ'; if(value==='0')return'× なし'; return'不明'; }
   if(key==='魔法の呪文'){ if(value==='1')return'ここんぽいぽいここったま！'; if(!value||value==='0')return'不明'; return value; }
   return value&&value.trim()!==''?value:'不明';
 }
@@ -729,8 +729,8 @@ function render(){
         <span class="chara-gender ${isF?'f':isM?'m':''}">${isF?'♀':isM?'♂':'？'}</span>
         <div class="chara-minibadges">
           ${isFull?'<span class="mb g">一人前</span>':''}
-          ${hasKoubo1?'<span class="mb p">⚪</span>':''}
-          ${hasKoubo2?'<span class="mb y">📝</span>':''}
+          ${hasKoubo1?'<span class="mb p">公募</span>':''}
+          ${hasKoubo2?'<span class="mb y">スタッフ</span>':''}
         </div>
       </div>
       <div class="chara-info">
@@ -742,7 +742,7 @@ function render(){
 }
 
 /* badges */
-const BADGE_LABELS={'性別':{'1':'♀ 女の子','0':'♂ 男の子'},'一人前':{'1':'🌟 一人前','0':'🥚 見習い'},'公募':{'1':'⚪ あり','2':'📝 スタッフ','0':'× なし'}};
+const BADGE_LABELS={'性別':{'1':'♀ 女の子','0':'♂ 男の子'},'一人前':{'1':'🌟 一人前','0':'🥚 見習い'},'公募':{'1':'○ あり','2':'スタッフ','0':'× なし'}};
 function renderBadges(){
   activeBadges.innerHTML='';
   for(const [key,vals] of Object.entries(filters)){
