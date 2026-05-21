@@ -13,7 +13,7 @@
   --pink-lt:    #ffe4f2;
   --pink-dk:    #d4006a;
   --pink-pale:  #fff7fb;
-  --yellow:     #ffd43e;
+  --yellow:     #ffd746;
   --yellow-lt:  #fff9d6;
   --yellow-dk:  #b8860b;
   --green:      #7ecb6e;
@@ -299,6 +299,18 @@ body {
 .result-count { font-size: .85rem; font-weight: 700; color: var(--text-sub); }
 .result-count strong { color: var(--pink); font-size: 1.2em; }
 
+.sort-wrap {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--pink-pale); border: 2px solid var(--border);
+  border-radius: 999px; padding: 8px 12px;
+  font-size: .82rem; color: var(--text-sub);
+}
+.sort-wrap label { white-space: nowrap; }
+.sort-wrap select {
+  border: none; outline: none; background: transparent;
+  font: inherit; color: inherit; cursor: pointer;
+}
+
 .active-badges { display: flex; flex-wrap: wrap; gap: 5px; }
 .a-badge {
   display: inline-flex; align-items: center; gap: 4px;
@@ -371,7 +383,7 @@ body {
 }
 .mb.g { background: var(--green); color: #fff; }
 .mb.p { background: var(--purple); color: #fff; }
-.mb.y { background: var(--yellow); color: #333; }
+.mb.y { background: var(--yellow); color: #fff; }
 
 .chara-info {
   padding: 7px 9px 9px;
@@ -602,6 +614,15 @@ body {
   <main class="main-area">
     <div class="result-bar">
       <div class="result-count" id="resultCount">読み込み中…</div>
+      <div class="sort-wrap">
+        <label for="sortSelect">並び替え</label>
+        <select id="sortSelect">
+          <option value="nameAsc">名前（昇順）</option>
+          <option value="nameDesc">名前（降順）</option>
+          <option value="enAsc">英語名（昇順）</option>
+          <option value="enDesc">英語名（降順）</option>
+        </select>
+      </div>
       <div class="active-badges" id="activeBadges"></div>
     </div>
     <div class="chara-grid" id="charaGrid"></div>
@@ -618,6 +639,7 @@ let allData = [];
 let matchMode = 'prefix';
 let filters = {};
 let query = '';
+let sortOrder = 'nameAsc';
 
 const searchEl   = document.getElementById('search');
 const clearBtn   = document.getElementById('clearBtn');
@@ -625,6 +647,7 @@ const charaGrid  = document.getElementById('charaGrid');
 const resultCount= document.getElementById('resultCount');
 const heroCount  = document.getElementById('heroCount');
 const activeBadges=document.getElementById('activeBadges');
+const sortSelect = document.getElementById('sortSelect');
 const modalOverlay=document.getElementById('modalOverlay');
 const modal      = document.getElementById('modal');
 const mobileFilterBtn=document.getElementById('mobileFilterBtn');
@@ -691,13 +714,41 @@ function fuzzyScore(target,q){
 }
 function getResults(){
   let pool=allData.filter(matchFilter);
-  if(!query)return pool;
+  if(!query){
+    return sortResults(pool);
+  }
   const ql=query.toLowerCase(),qh=toHiragana(ql),qr=toRomaji(qh);
-  if(matchMode==='prefix') return pool.filter(d=>d['名前'].startsWith(query)||d._hira.startsWith(qh)||d._roma.startsWith(qr));
-  if(matchMode==='partial') return pool.filter(d=>d['名前'].includes(query)||d._hira.includes(qh)||d._roma.includes(qr));
+  if(matchMode==='prefix') return sortResults(pool.filter(d=>d['名前'].startsWith(query)||d._hira.startsWith(qh)||d._roma.startsWith(qr)));
+  if(matchMode==='partial') return sortResults(pool.filter(d=>d['名前'].includes(query)||d._hira.includes(qh)||d._roma.includes(qr)));
   const scored=pool.map(d=>({d,s:Math.max(fuzzyScore(d['名前'],query),fuzzyScore(d._hira,qh),fuzzyScore(d._roma,qr))})).filter(x=>x.s>=0);
   scored.sort((a,b)=>b.s-a.s);
-  return scored.map(x=>x.d);
+  const fuzzyResults=scored.map(x=>x.d);
+  return sortResults(fuzzyResults);
+}
+
+function sortResults(results){
+  const sorted=[...results];
+  if(sortOrder==='nameAsc'){
+    return sorted.sort((a,b)=>a._hira.localeCompare(b._hira,'ja'));
+  }
+  if(sortOrder==='nameDesc'){
+    return sorted.sort((a,b)=>b._hira.localeCompare(a._hira,'ja'));
+  }
+  if(sortOrder==='enAsc'){
+    return sorted.sort((a,b)=>{
+      const aEn=a['EN-Name']&&a['EN-Name']!=='0'?a['EN-Name']:'';
+      const bEn=b['EN-Name']&&b['EN-Name']!=='0'?b['EN-Name']:'';
+      return aEn.localeCompare(bEn,'en', {sensitivity:'base'}) || a._hira.localeCompare(b._hira,'ja');
+    });
+  }
+  if(sortOrder==='enDesc'){
+    return sorted.sort((a,b)=>{
+      const aEn=a['EN-Name']&&a['EN-Name']!=='0'?a['EN-Name']:'';
+      const bEn=b['EN-Name']&&b['EN-Name']!=='0'?b['EN-Name']:'';
+      return bEn.localeCompare(aEn,'en', {sensitivity:'base'}) || a._hira.localeCompare(b._hira,'ja');
+    });
+  }
+  return results;
 }
 
 /* render grid */
@@ -836,6 +887,10 @@ clearBtn.addEventListener('click',()=>{
   searchEl.value=query='';
   clearBtn.classList.remove('show');
   render(); searchEl.focus();
+});
+sortSelect.addEventListener('change',()=>{
+  sortOrder=sortSelect.value;
+  render();
 });
 
 /* mode pills */
