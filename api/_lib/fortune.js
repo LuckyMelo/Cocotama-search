@@ -195,45 +195,46 @@ function normalizeFortuneOutput(output, fallbackTemplate) {
 }
 
 async function generateFortuneWithAI({ profile, scored }) {
-  const apiKey = process.env.OPENAI_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    throw new Error('OPENAI_API_KEY is not set');
+    throw new Error('GEMINI_API_KEY is not set');
   }
 
-  const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
-  const prompt = {
-    role: 'user',
-    content: [
-      '以下の入力を使い、ここたま占いをJSONで作成してください。',
-      'キーは overall, love, work, lucky_action, lucky_color のみ。',
-      '日本語で、短く前向きな文体にしてください。',
-      `ユーザー名: ${profile?.name || ''}`,
-      `表示ID: ${profile?.username || ''}`,
-      `プロフィール: ${profile?.description || ''}`,
-      `位置情報: ${profile?.location || ''}`,
-      `一致キーワード: ${scored.matched.map((rule) => `${rule.keyword}(${rule.category}:${rule.score})`).join(', ') || 'なし'}`,
-      `カテゴリスコア: overall=${scored.categoryScores.overall}, love=${scored.categoryScores.love}, work=${scored.categoryScores.work}`,
-    ].join('\n'),
-  };
+  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const promptText = [
+    '以下の入力を使い、ここたま占いをJSONで作成してください。',
+    'キーは overall, love, work, lucky_action, lucky_color のみ。',
+    '日本語で、短く前向きな文体にしてください。',
+    `ユーザー名: ${profile?.name || ''}`,
+    `表示ID: ${profile?.username || ''}`,
+    `プロフィール: ${profile?.description || ''}`,
+    `位置情報: ${profile?.location || ''}`,
+    `一致キーワード: ${scored.matched.map((rule) => `${rule.keyword}(${rule.category}:${rule.score})`).join(', ') || 'なし'}`,
+    `カテゴリスコア: overall=${scored.categoryScores.overall}, love=${scored.categoryScores.love}, work=${scored.categoryScores.work}`,
+  ].join('\n');
 
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: 'Bearer ' + apiKey,
     },
     body: JSON.stringify({
-      model,
-      temperature: 0.7,
-      messages: [
+      system_instruction: {
+        parts: [
+          {
+            text: 'あなたはここたま占い師です。必ずJSON形式だけを返してください。',
+          },
+        ],
+      },
+      contents: [
         {
-          role: 'system',
-          content: 'あなたはここたま占い師です。必ずJSON形式だけを返してください。',
+          role: 'user',
+          parts: [{ text: promptText }],
         },
-        prompt,
       ],
-      response_format: {
-        type: 'json_object',
+      generationConfig: {
+        temperature: 0.7,
+        responseMimeType: 'application/json',
       },
     }),
   });
@@ -244,7 +245,9 @@ async function generateFortuneWithAI({ profile, scored }) {
   }
 
   const json = await response.json();
-  const content = json?.choices?.[0]?.message?.content || '';
+  const content = (json?.candidates?.[0]?.content?.parts || [])
+    .map((part) => part.text || '')
+    .join('\n');
   const parsed = safeJsonParse(content);
   if (!parsed) {
     throw new Error('AI output was not valid JSON');
