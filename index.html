@@ -147,6 +147,90 @@ body {
   border-bottom: 2px dashed var(--border);
 }
 
+.fortune-section {
+  max-width: 1100px;
+  margin: 14px auto 0;
+  padding: 0 16px;
+}
+.fortune-card-wrap {
+  background: #fff;
+  border: 3px solid var(--pink-lt);
+  border-radius: 24px;
+  box-shadow: var(--shadow-sm);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.fortune-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Kaisei Decol', serif;
+  font-size: 1.25rem;
+  color: var(--pink-dk);
+}
+.fortune-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fortune-btn {
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px;
+  font-family: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.fortune-btn.login {
+  background: #111;
+  color: #fff;
+}
+.fortune-btn.run {
+  background: linear-gradient(135deg, var(--pink), var(--orange));
+  color: #fff;
+}
+.fortune-btn:disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+.fortune-status {
+  font-size: .85rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.fortune-state {
+  min-height: 20px;
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-sub);
+}
+.fortune-state.error {
+  color: #c4205f;
+}
+.fortune-result {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 8px;
+}
+.fortune-result-card {
+  border: 2px solid var(--border);
+  border-radius: 14px;
+  background: var(--pink-pale);
+  padding: 10px 12px;
+}
+.fortune-result-card h4 {
+  font-size: .75rem;
+  color: var(--pink-dk);
+  margin-bottom: 4px;
+}
+.fortune-result-card p {
+  font-size: .82rem;
+  line-height: 1.5;
+}
+
 .search-wrap {
   max-width: 680px; margin: 0 auto;
   display: flex; align-items: center;
@@ -552,6 +636,20 @@ body {
   </div>
 </div>
 
+<!-- FORTUNE -->
+<section class="fortune-section">
+  <div class="fortune-card-wrap">
+    <h2 class="fortune-title">🔮 ここたま占い</h2>
+    <div class="fortune-controls">
+      <button class="fortune-btn login" id="xLoginBtn">Xでログイン</button>
+      <span class="fortune-status" id="loginStatus">ログイン状態: 確認中…</span>
+      <button class="fortune-btn run" id="fortuneBtn" disabled>占う</button>
+    </div>
+    <div class="fortune-state" id="fortuneState">ログイン後に占いを実行できます。</div>
+    <div class="fortune-result" id="fortuneResult" hidden></div>
+  </div>
+</section>
+
 <!-- PAGE BODY -->
 <div class="page-body">
 
@@ -652,6 +750,12 @@ const modalOverlay=document.getElementById('modalOverlay');
 const modal      = document.getElementById('modal');
 const mobileFilterBtn=document.getElementById('mobileFilterBtn');
 const sidebar    = document.getElementById('sidebar');
+const xLoginBtn  = document.getElementById('xLoginBtn');
+const fortuneBtn = document.getElementById('fortuneBtn');
+const loginStatus= document.getElementById('loginStatus');
+const fortuneState=document.getElementById('fortuneState');
+const fortuneResult=document.getElementById('fortuneResult');
+let authUser = null;
 
 /* converters */
 function toHiragana(str){
@@ -669,6 +773,49 @@ function convertValue(key,value){
   return value&&value.trim()!==''?value:'不明';
 }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function setFortuneMessage(message,isError=false){
+  fortuneState.textContent=message;
+  fortuneState.classList.toggle('error',isError);
+}
+
+function renderFortuneResult(payload){
+  const {fortune,meta,user}=payload;
+  fortuneResult.hidden=false;
+  fortuneResult.innerHTML=`
+    <article class="fortune-result-card"><h4>全体運</h4><p>${esc(fortune.overall||'')}</p></article>
+    <article class="fortune-result-card"><h4>恋愛運</h4><p>${esc(fortune.love||'')}</p></article>
+    <article class="fortune-result-card"><h4>仕事・学業運</h4><p>${esc(fortune.work||'')}</p></article>
+    <article class="fortune-result-card"><h4>ラッキーアクション</h4><p>${esc(fortune.lucky_action||'')}</p></article>
+    <article class="fortune-result-card"><h4>ラッキーカラー</h4><p>${esc(fortune.lucky_color||'')}</p></article>
+    <article class="fortune-result-card"><h4>メモ</h4><p>${esc((user?.name||'あなた')+' さん向け / '+(meta?.fallbackUsed?'テンプレート占い':'AI占い'))}</p></article>`;
+}
+
+function updateLoginUI(authenticated,user){
+  authUser=authenticated?user:null;
+  loginStatus.textContent=authenticated
+    ?`ログイン中: @${user?.username||'user'}`
+    :'ログイン状態: 未ログイン';
+  fortuneBtn.disabled=!authenticated;
+}
+
+async function refreshAuthStatus(){
+  try{
+    const res=await fetch('/api/auth/me',{credentials:'same-origin'});
+    const data=await res.json();
+    updateLoginUI(Boolean(data.authenticated),data.user||null);
+    if(data.authenticated){
+      setFortuneMessage('ログイン済みです。占いボタンで今日の運勢を確認できます。');
+    }else{
+      setFortuneMessage('ログイン後に占いを実行できます。');
+      fortuneResult.hidden=true;
+      fortuneResult.innerHTML='';
+    }
+  }catch{
+    updateLoginUI(false,null);
+    setFortuneMessage('ログイン状態の取得に失敗しました。再読み込みしてください。',true);
+  }
+}
 
 /* CSV load */
 fetch('cocotama.csv')
@@ -929,6 +1076,49 @@ document.getElementById('resetBtn').addEventListener('click',()=>{
   document.querySelectorAll('.sf-pill[data-filter]').forEach(p=>p.classList.remove('on'));
   renderBadges(); render();
 });
+
+/* fortune */
+xLoginBtn.addEventListener('click',()=>{
+  setFortuneMessage('Xログインへ移動します…');
+  window.location.href='/api/auth/x/start';
+});
+
+fortuneBtn.addEventListener('click',async()=>{
+  if(!authUser)return;
+  fortuneBtn.disabled=true;
+  setFortuneMessage('占いを生成中です…');
+  try{
+    const res=await fetch('/api/fortune/generate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      credentials:'same-origin',
+      body:JSON.stringify({trigger:'manual'})
+    });
+    const data=await res.json();
+    if(!res.ok){
+      throw new Error(data.error||'占い生成に失敗しました');
+    }
+    renderFortuneResult(data);
+    setFortuneMessage(data.meta?.fallbackUsed?'テンプレート占いを表示しました。':'AI占いを表示しました。');
+  }catch(err){
+    setFortuneMessage(err.message||'占い生成に失敗しました',true);
+  }finally{
+    fortuneBtn.disabled=!authUser;
+  }
+});
+
+const pageParams=new URLSearchParams(window.location.search);
+if(pageParams.get('fortune_error')){
+  setFortuneMessage('Xログインに失敗しました。もう一度お試しください。',true);
+}
+if(pageParams.get('fortune_auth')==='success'){
+  setFortuneMessage('Xログインに成功しました。占いを実行できます。');
+}
+if(pageParams.has('fortune_error')||pageParams.has('fortune_auth')){
+  const cleanUrl=window.location.pathname+window.location.hash;
+  window.history.replaceState({},'',cleanUrl);
+}
+refreshAuthStatus();
 
 /* mobile filter */
 mobileFilterBtn.addEventListener('click',()=>{
