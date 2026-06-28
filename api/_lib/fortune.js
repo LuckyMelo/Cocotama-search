@@ -196,6 +196,8 @@ function normalizeFortuneOutput(output, fallbackTemplate) {
 
 async function generateFortuneWithAI({ profile, scored }) {
   const apiKey = process.env.OPENROUTER_API_KEY;
+  console.log("OPENROUTER_API_KEY exists:", !!apiKey);
+  console.log("Model:", process.env.OPENROUTER_MODEL);
   if (!apiKey) {
     throw new Error('OPENROUTER_API_KEY is not set');
   }
