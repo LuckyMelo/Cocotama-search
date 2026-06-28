@@ -54,7 +54,8 @@ module.exports = async function handler(req, res) {
     try {
       const aiOutput = await generateFortuneWithAI({ profile, scored });
       finalFortune = normalizeFortuneOutput(aiOutput, fallbackTemplate);
-    } catch {
+    } catch (err) {
+      console.error("AI Error:", err);
       finalFortune = fallbackTemplate;
     }
 
