@@ -195,12 +195,12 @@ function normalizeFortuneOutput(output, fallbackTemplate) {
 }
 
 async function generateFortuneWithAI({ profile, scored }) {
-  const apiKey = process.env.GEMINI_API_KEY;
+  const apiKey = process.env.OPENROUTER_API_KEY;
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY is not set');
+    throw new Error('OPENROUTER_API_KEY is not set');
   }
 
-  const model = process.env.GEMINI_MODEL || 'gemini-1.5-flash';
+  const model = process.env.OPENROUTER_MODEL || 'openai/gpt-4o-mini';
   const promptText = [
     '以下の入力を使い、ここたま占いをJSONで作成してください。',
     'キーは overall, love, work, lucky_action, lucky_color のみ。',
@@ -213,29 +213,28 @@ async function generateFortuneWithAI({ profile, scored }) {
     `カテゴリスコア: overall=${scored.categoryScores.overall}, love=${scored.categoryScores.love}, work=${scored.categoryScores.work}`,
   ].join('\n');
 
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`, {
+  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
+      Authorization: 'Bearer ' + apiKey,
       'Content-Type': 'application/json',
+      'HTTP-Referer': process.env.OPENROUTER_SITE_URL || process.env.APP_BASE_URL || 'http://localhost:3000',
+      'X-Title': process.env.OPENROUTER_SITE_NAME || 'Cocotama-search',
     },
     body: JSON.stringify({
-      system_instruction: {
-        parts: [
-          {
-            text: 'あなたはここたま占い師です。必ずJSON形式だけを返してください。',
-          },
-        ],
-      },
-      contents: [
+      model,
+      messages: [
+        {
+          role: 'system',
+          content: 'あなたはここたま占い師です。必ずJSON形式だけを返してください。',
+        },
         {
           role: 'user',
-          parts: [{ text: promptText }],
+          content: promptText,
         },
       ],
-      generationConfig: {
-        temperature: 0.7,
-        responseMimeType: 'application/json',
-      },
+      temperature: 0.7,
+      response_format: { type: 'json_object' },
     }),
   });
 
@@ -245,9 +244,12 @@ async function generateFortuneWithAI({ profile, scored }) {
   }
 
   const json = await response.json();
-  const content = (json?.candidates?.[0]?.content?.parts || [])
-    .map((part) => part.text || '')
-    .join('\n');
+  const contentRaw = json?.choices?.[0]?.message?.content;
+  const content = typeof contentRaw === 'string'
+    ? contentRaw
+    : Array.isArray(contentRaw)
+      ? contentRaw.map((part) => part?.text || '').join('\n')
+      : '';
   const parsed = safeJsonParse(content);
   if (!parsed) {
     throw new Error('AI output was not valid JSON');

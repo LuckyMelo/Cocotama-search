@@ -19,8 +19,10 @@
 - `X_CLIENT_SECRET` (必要なアプリ設定の場合)
 - `X_REDIRECT_URI` 例: `http://localhost:3000/api/auth/x/callback`
 - `X_SCOPES` 既定値: `users.read`
-- `GEMINI_API_KEY` (AI 占い生成用)
-- `GEMINI_MODEL` (任意、既定: `gemini-1.5-flash`)
+- `OPENROUTER_API_KEY` (AI 占い生成用)
+- `OPENROUTER_MODEL` (任意、既定: `openai/gpt-4o-mini`)
+- `OPENROUTER_SITE_URL` (任意、OpenRouter ダッシュボード表示用。既定: `APP_BASE_URL`)
+- `OPENROUTER_SITE_NAME` (任意、OpenRouter ダッシュボード表示用。既定: `Cocotama-search`)
 
 ## X Developer App 設定
 
@@ -64,4 +66,4 @@ X Developer Portal の OAuth 設定で以下を設定してください。
 ## 制限事項
 
 - AI 出力品質はプロフィール内容に依存します。
-- `GEMINI_API_KEY` 未設定時は常にテンプレート占いになります。
+- `OPENROUTER_API_KEY` 未設定時は常にテンプレート占いになります。
